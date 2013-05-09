@@ -1,4 +1,5 @@
-comebacklog
+'backlog
 ===========
 
-backlog.jp client
+backlog.jpのAPIを利用して、ダッシュボードに相当する情報をひゅうじするクライアントアプリ
+

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item   android:id="@+id/menu_config"
+            android:title="@string/prefs"
+            android:icon="@drawable/ic_action_setting"
+            android:orderInCategory="0"
+            android:showAsAction="ifRoom|withText"
+            />
+
+    <item   android:id="@+id/menu_reload"
+            android:title="@string/reload"
+            android:icon="@drawable/ic_action_refresh"
+            android:orderInCategory="1"
+            android:showAsAction="ifRoom|withText"
+            />
+
+    <item   android:id="@+id/menu_post"
+            android:title="@string/post"
+            android:icon="@drawable/ic_action_save"
+            android:orderInCategory="2"
+            android:showAsAction="always"
+            android:visible="false"
+            />
+
+</menu>
