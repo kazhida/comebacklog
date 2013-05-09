@@ -1,6 +1,7 @@
 package com.abplus.comebacklog;
 
 import android.os.Handler;
+import android.text.TextUtils;
 import android.util.Log;
 import org.apache.http.Header;
 import org.apache.http.HttpResponse;
@@ -175,6 +176,36 @@ public class BacklogIO {
         xml.append("<string>");
         xml.append(userId);
         xml.append("</string>");
+        xml.append("</value>");
+        xml.append("</param>");
+        xml.append("</params>");
+        xml.append("</methodCall>");
+
+        post(xml.toString(), notify);
+    }
+
+    public void postComment(String key, String content, ResponseNotify notify) {
+        StringBuilder xml = new StringBuilder();
+
+        xml.append("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
+        xml.append("<methodCall>");
+        xml.append("<methodName>backlog.addComment</methodName>");
+        xml.append("<params>");
+        xml.append("<param>");
+        xml.append("<value>");
+        xml.append("<struct>");
+
+        xml.append("<member>");
+        xml.append("<name>key</name>");
+        xml.append("<value><string>").append(TextUtils.htmlEncode(key)).append("</string></value>");
+        xml.append("</member>");
+
+        xml.append("<member>");
+        xml.append("<name>content</name>");
+        xml.append("<value><string>").append(TextUtils.htmlEncode(content)).append("</string></value>");
+        xml.append("</member>");
+
+        xml.append("</struct>");
         xml.append("</value>");
         xml.append("</param>");
         xml.append("</params>");

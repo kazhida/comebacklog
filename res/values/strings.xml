@@ -22,5 +22,9 @@
     <string name="loading">読込中…</string>
     <string name="cant_load">読み込めませんでした。</string>
 
+    <string name="sending">送信中</string>
+    <string name="cant_send">失敗しました。</string>
+    <string name="done_send">送信しました。</string>
+
     <string name="follow_user">が、課題を</string>
 </resources>

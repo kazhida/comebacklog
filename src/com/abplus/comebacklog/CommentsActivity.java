@@ -2,10 +2,14 @@ package com.abplus.comebacklog;
 
 import android.app.Activity;
 import android.app.ProgressDialog;
+import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
+import android.view.View;
 import android.view.WindowManager;
+import android.view.inputmethod.InputMethodManager;
+import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -18,6 +22,7 @@ import android.widget.Toast;
  */
 public class CommentsActivity extends Activity {
     private int issueId;
+    private String issueKey;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -30,12 +35,20 @@ public class CommentsActivity extends Activity {
 
         Intent intent = getIntent();
         issueId = intent.getIntExtra(getString(R.string.key_issue_id), -1);
+        issueKey = intent.getStringExtra(getString(R.string.key_issue_key));
 
         TextView key = (TextView)findViewById(R.id.key);
         TextView summary = (TextView)findViewById(R.id.summary);
 
-        key.setText(intent.getStringExtra(getString(R.string.key_issue_key)));
+        key.setText(issueKey);
         summary.setText(intent.getStringExtra(getString(R.string.key_issue_summary)));
+
+        findViewById(R.id.send).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                postComment();
+            }
+        });
     }
 
     @Override
@@ -82,5 +95,51 @@ public class CommentsActivity extends Activity {
 
     private void showError(int msg_id, String msg) {
         Toast.makeText(this, getString(msg_id) + "  " + msg, Toast.LENGTH_LONG).show();
+    }
+
+    private void showMessage(int msg_id) {
+        Toast.makeText(this, getString(msg_id), Toast.LENGTH_SHORT).show();
+    }
+
+    private void postComment() {
+        BacklogIO io = BackLogCache.sharedInstance().getIO();
+
+        final EditText edit = (EditText)findViewById(R.id.comment);
+        String content = edit.getText().toString();
+
+        if (content.isEmpty()) {
+            showComments();
+        } else {
+            final ProgressDialog waitDialog = showWait(getString(R.string.sending));
+
+            io.postComment(issueKey, content, new BacklogIO.ResponseNotify() {
+                @Override
+                public void success(int code, String response) {
+                    waitDialog.dismiss();
+                    showMessage(R.string.done_send);
+                    //  うまくいったからクリア
+                    edit.setText(null);
+                    //  キーボードも隠す
+                    if (edit.hasFocus()) {
+                        InputMethodManager mgr = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+                        mgr.hideSoftInputFromWindow(getCurrentFocus().getWindowToken(), 0);
+                    }
+                    //  読込直し
+                    showComments();
+                }
+
+                @Override
+                public void failed(int code, String response) {
+                    waitDialog.dismiss();
+                    showError(R.string.cant_send, "ERROR STATUS = " + code);
+                }
+
+                @Override
+                public void error(Exception e) {
+                    waitDialog.dismiss();
+                    showError(R.string.cant_send, "Error: " + e.getLocalizedMessage());
+                }
+            });
+        }
     }
 }

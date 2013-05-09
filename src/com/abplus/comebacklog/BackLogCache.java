@@ -74,6 +74,10 @@ public class BackLogCache {
         return backlogIO.getUserId();
     }
 
+    public BacklogIO getIO() {
+        return backlogIO;
+    }
+
     private String dateString(String date) {
         if (date == null) {
             return null;
@@ -315,6 +319,4 @@ public class BackLogCache {
             return new CommentsAdapter();
         }
     }
-
-
 }

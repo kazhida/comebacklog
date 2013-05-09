@@ -146,7 +146,7 @@ public class MainActivity extends Activity {
                 showPreferences();
                 return true;
             case R.id.menu_reload:
-                showTimeLine(true);
+                showTimeLine(false);
                 return true;
             case R.id.menu_post:
                 return true;
