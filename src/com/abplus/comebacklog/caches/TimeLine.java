@@ -129,7 +129,7 @@ public class TimeLine implements BackLogCache.RootParseable {
             if (item != null) {
                 if (name.equals("content")) {
                     item.content = xpp.getText();
-                } else if (name.equals("name")) {
+                } else if (name.equals("updated_on")) {
                     item.updated_on = xpp.getText();
                 }
             }

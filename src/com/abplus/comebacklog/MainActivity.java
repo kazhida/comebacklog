@@ -8,8 +8,10 @@ import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.view.*;
+import android.widget.AdapterView;
 import android.widget.ListView;
 import android.widget.Toast;
+import com.abplus.comebacklog.caches.TimeLine;
 
 public class MainActivity extends Activity {
 
@@ -20,6 +22,17 @@ public class MainActivity extends Activity {
         }
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
+
+        ListView list = (ListView)findViewById(R.id.time_line_list);
+        list.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                TimeLine.Item item = (TimeLine.Item)view.getTag();
+                if (item != null) {
+                    showComments(item.getIssue());
+                }
+            }
+        });
     }
 
     @Override
@@ -65,14 +78,8 @@ public class MainActivity extends Activity {
         Toast.makeText(this, getString(msg_id) + "  " + msg, Toast.LENGTH_LONG).show();
     }
 
-    private void showPreferences() {
-        Intent intent=new Intent(this, PrefsActivity.class);
-        intent.setAction(Intent.ACTION_VIEW);
-        startActivity(intent);
-    }
-
     private void showTimeLine(boolean keep) {
-        final ListView list = (ListView)findViewById(R.id.list_view);
+        final ListView list = (ListView)findViewById(R.id.time_line_list);
         final BackLogCache cache = BackLogCache.sharedInstance();
 
         if (keep) {
@@ -99,6 +106,25 @@ public class MainActivity extends Activity {
                 }
             });
         }
+    }
+
+    private void showPreferences() {
+        Intent intent = new Intent(this, PrefsActivity.class);
+
+        intent.setAction(Intent.ACTION_VIEW);
+
+        startActivity(intent);
+    }
+
+    private void showComments(TimeLine.Issue issue) {
+        Intent intent = new Intent(this, CommentsActivity.class);
+
+        intent.setAction(Intent.ACTION_VIEW);
+        intent.putExtra(getString(R.string.key_issue_id), issue.getId());
+        intent.putExtra(getString(R.string.key_issue_key), issue.getKey());
+        intent.putExtra(getString(R.string.key_issue_summary), issue.getSummary());
+
+        startActivity(intent);
     }
 
     @Override

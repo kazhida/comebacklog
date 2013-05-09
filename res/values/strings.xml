@@ -9,18 +9,12 @@
     <string name="dummy_user">Dummy</string>
     <string name="dummy_content">それは、それは、いろんなことがあったのだよ。だからこんなに長いコメントになっているんだ。</string>
 
-    <string name="key_space_id">KEY_SPACE_ID</string>
-    <string name="key_user_id">KEY_USER_ID</string>
-    <string name="key_user_id_int">KEY_USER_ID_INT</string>
-    <string name="key_password">KEY_PASSWORD</string>
+    <string name="key_issue_id">KEY_ISSUE_ID</string>
+    <string name="key_issue_key">KEY_ISSUE_KEY</string>
+    <string name="key_issue_summary">KEY_ISSUE_SUMMARY</string>
 
-    <string name="prefs">設定登録</string>
-    <string name="space_id">スペースID</string>
-    <string name="user_id">ユーザID</string>
-    <string name="password">パスワード</string>
-    <string name="backlog_domain">.backlog.jp</string>
-    <string name="need_register">始めにアカウント情報を登録してください。</string>
-    <string name="register">Register</string>
+    <string name="save">保存</string>
+    <string name="send">送信</string>
 
     <string name="reload">更新</string>
     <string name="post">投稿</string>
