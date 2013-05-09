@@ -1,6 +1,5 @@
 package com.abplus.comebacklog.caches;
 
-import android.util.Log;
 import com.abplus.comebacklog.BackLogCache;
 import com.abplus.comebacklog.BacklogIO;
 import org.xmlpull.v1.XmlPullParser;
@@ -52,6 +51,10 @@ public class TimeLine implements BackLogCache.RootParseable {
 
         public String getSummary() {
             return summary;
+        }
+
+        public String getDescription() {
+            return description;
         }
 
         public IdNamePair getPriority() {

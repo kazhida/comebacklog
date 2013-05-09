@@ -2,23 +2,31 @@
 <resources>
     <string name="app_name">*backlog</string>
 
+    <string name="icon">アイコン</string>
+    <string name="dummy_time">2013–01–01 12:34:56</string>
+    <string name="dummy_key">PRJ1234</string>
+    <string name="dummy_summary">Project of 1234</string>
+    <string name="dummy_user">Dummy</string>
+    <string name="dummy_content">それは、それは、いろんなことがあったのだよ。だからこんなに長いコメントになっているんだ。</string>
+
     <string name="key_space_id">KEY_SPACE_ID</string>
     <string name="key_user_id">KEY_USER_ID</string>
     <string name="key_user_id_int">KEY_USER_ID_INT</string>
     <string name="key_password">KEY_PASSWORD</string>
 
-    <string name="prefs">Preferences</string>
-    <string name="space_id">Space ID</string>
-    <string name="user_id">User ID</string>
-    <string name="password">Password</string>
+    <string name="prefs">設定登録</string>
+    <string name="space_id">スペースID</string>
+    <string name="user_id">ユーザID</string>
+    <string name="password">パスワード</string>
     <string name="backlog_domain">.backlog.jp</string>
-    <string name="need_register">First, You need to register account information.</string>
+    <string name="need_register">始めにアカウント情報を登録してください。</string>
     <string name="register">Register</string>
 
-    <string name="reload">Reload</string>
-    <string name="post">Post</string>
+    <string name="reload">更新</string>
+    <string name="post">投稿</string>
 
-    <string name="loading">Loading…</string>
-    <string name="cant_load">Cannot Load.</string>
+    <string name="loading">読込中…</string>
+    <string name="cant_load">読み込めませんでした。</string>
 
+    <string name="follow_user">が、課題を</string>
 </resources>

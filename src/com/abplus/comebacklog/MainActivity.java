@@ -8,18 +8,10 @@ import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.view.*;
+import android.widget.ListView;
 import android.widget.Toast;
 
 public class MainActivity extends Activity {
-
-    private enum ListOf {
-        SUMMARIES,
-        TIME_LINE,
-        COMMENTS
-    }
-
-    private ListOf which = ListOf.SUMMARIES;
-    private MenuItem postItem = null;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -28,19 +20,6 @@ public class MainActivity extends Activity {
         }
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
-
-        findViewById(R.id.tab_summaries).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                showSummaries();
-            }
-        });
-        findViewById(R.id.tab_time_line).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                showTimeLine();
-            }
-        });
     }
 
     @Override
@@ -51,29 +30,24 @@ public class MainActivity extends Activity {
         String spaceId = prefs.getString(getString(R.string.key_space_id), "");
         String userId = prefs.getString(getString(R.string.key_user_id), "");
         String password = prefs.getString(getString(R.string.key_password), "");
-        final int displayed = prefs.getInt(getString(R.string.key_displayed), -1);
 
         if (spaceId.length() == 0 || userId.length() == 0 || password.length() == 0) {
             //  未登録なら設定画面
             showPreferences();
         } else {
-            if (displayed != ListOf.TIME_LINE.ordinal()) {
-                showSummaries();
-            } else {
-                showTimeLine();
-            }
+            showTimeLine(samePrefs(spaceId, userId, password));
         }
     }
 
-    @Override
-    protected void onPause() {
-        super.onPause();
+    private boolean samePrefs(String spaceId, String userId, String password) {
+        BackLogCache cache = BackLogCache.sharedInstance();
 
-        //  どれを表示していたかを保存しておく
-        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
-        SharedPreferences.Editor editor = prefs.edit();
-        editor.putInt(getString(R.string.key_displayed), which.ordinal());
-        editor.commit();
+        if (cache == null) {
+            BackLogCache.initSharedInstance(this, new BacklogIO(spaceId, userId, password));
+            return false;
+        } else {
+            return spaceId.equals(cache.spaceId()) && userId.equals(cache.userId()) && cache.getTimeLineAdapter() != null;
+        }
     }
 
     private ProgressDialog showWait(String msg) {
@@ -94,26 +68,34 @@ public class MainActivity extends Activity {
         startActivity(intent);
     }
 
-    private void showSummaries() {
-        which = ListOf.SUMMARIES;
+    private void showTimeLine(boolean reload) {
+        final ListView list = (ListView)findViewById(R.id.list_view);
+        final BackLogCache cache = BackLogCache.sharedInstance();
 
-        findViewById(R.id.tab_summaries).setBackgroundColor(getResources().getColor(R.color.bg_selected));
-        findViewById(R.id.tab_time_line).setBackgroundColor(getResources().getColor(R.color.bg_unselected));
-        if (postItem != null) postItem.setVisible(false);
-    }
+        if (reload) {
+            final ProgressDialog waitDialog = showWait(getString(R.string.loading));
+            cache.loadTimeLine(new BacklogIO.ResponseNotify() {
+                @Override
+                public void success(int code, String response) {
+                    waitDialog.dismiss();
+                    list.setAdapter(cache.getTimeLineAdapter());
+                }
 
-    private void showTimeLine() {
-        which = ListOf.TIME_LINE;
+                @Override
+                public void failed(int code, String response) {
+                    waitDialog.dismiss();
+                    showError(R.string.cant_load, "ERROR STATUS = " + code);
+                }
 
-        findViewById(R.id.tab_summaries).setBackgroundColor(getResources().getColor(R.color.bg_unselected));
-        findViewById(R.id.tab_time_line).setBackgroundColor(getResources().getColor(R.color.bg_selected));
-        if (postItem != null) postItem.setVisible(false);
-    }
-
-    private void showComments(int commentId) {
-        which = ListOf.COMMENTS;
-
-        if (postItem != null) postItem.setVisible(true);
+                @Override
+                public void error(Exception e) {
+                    waitDialog.dismiss();
+                    showError(R.string.cant_load, "Error: " + e.getLocalizedMessage());
+                }
+            });
+        } else {
+            list.setAdapter(cache.getTimeLineAdapter());
+        }
     }
 
     @Override
@@ -123,7 +105,7 @@ public class MainActivity extends Activity {
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.options, menu);
 
-        postItem = menu.findItem(R.id.menu_post);
+        menu.findItem(R.id.menu_post).setVisible(false);
 
         return true;
     }
@@ -135,20 +117,11 @@ public class MainActivity extends Activity {
                 showPreferences();
                 return true;
             case R.id.menu_reload:
+                showTimeLine(true);
                 return true;
             case R.id.menu_post:
                 return true;
         }
         return false;
-    }
-
-    @Override
-    public boolean onKeyDown(int keyCode, KeyEvent event) {
-        if (keyCode == KeyEvent.KEYCODE_BACK && which == ListOf.COMMENTS) {
-            showTimeLine();
-            return true;
-        } else {
-            return super.onKeyDown(keyCode, event);
-        }
     }
 }

@@ -5,4 +5,14 @@
 
     <color name="bg_root">#ffffff</color>
 
+    <color name="white">#ffffff</color>
+    <color name="gray">#999999</color>
+
+    <color name="type_subject">#ff0000</color>
+    <color name="type_comment">#00cc00</color>
+    <color name="type_update">#0000ff</color>
+
+    <color name="issue_summary">#0000cc</color>
+
+    <color name="text1">#ffccff</color>
 </resources>
