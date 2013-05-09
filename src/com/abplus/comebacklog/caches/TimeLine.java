@@ -23,12 +23,40 @@ public class TimeLine implements BackLogCache.RootParseable {
         new ItemsParser().parse(response);
     }
 
+    public int count() {
+        return items.size();
+    }
+
+    public Item get(int index) {
+        return items.get(index);
+    }
+
     public class Item {
-        IdNamePair type = new IdNamePair();
-        String content;
-        String updated_on;
-        IdNamePair user = new IdNamePair();
-        Issue issue = new Issue();
+        private IdNamePair type = new IdNamePair();
+        private String content;
+        private String updated_on;
+        private IdNamePair user = new IdNamePair();
+        private Issue issue = new Issue();
+
+        public IdNamePair getType() {
+            return type;
+        }
+
+        public String getContent() {
+            return content;
+        }
+
+        public String getUpdatedOn() {
+            return updated_on;
+        }
+
+        public IdNamePair getUser() {
+            return user;
+        }
+
+        public Issue getIssue() {
+            return issue;
+        }
     }
 
     public class Issue implements BacklogIO.IdHolder, BacklogIO.KeyHolder, BackLogCache.Parseable {

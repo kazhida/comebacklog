@@ -45,8 +45,11 @@ public class MainActivity extends Activity {
         if (cache == null) {
             BackLogCache.initSharedInstance(this, new BacklogIO(spaceId, userId, password));
             return false;
+        } else if(spaceId.equals(cache.spaceId()) && userId.equals(cache.userId()) && cache.getTimeLineAdapter() != null) {
+            return true;
         } else {
-            return spaceId.equals(cache.spaceId()) && userId.equals(cache.userId()) && cache.getTimeLineAdapter() != null;
+            BackLogCache.initSharedInstance(this, new BacklogIO(spaceId, userId, password));
+            return false;
         }
     }
 
@@ -68,11 +71,13 @@ public class MainActivity extends Activity {
         startActivity(intent);
     }
 
-    private void showTimeLine(boolean reload) {
+    private void showTimeLine(boolean keep) {
         final ListView list = (ListView)findViewById(R.id.list_view);
         final BackLogCache cache = BackLogCache.sharedInstance();
 
-        if (reload) {
+        if (keep) {
+            list.setAdapter(cache.getTimeLineAdapter());
+        } else {
             final ProgressDialog waitDialog = showWait(getString(R.string.loading));
             cache.loadTimeLine(new BacklogIO.ResponseNotify() {
                 @Override
@@ -93,8 +98,6 @@ public class MainActivity extends Activity {
                     showError(R.string.cant_load, "Error: " + e.getLocalizedMessage());
                 }
             });
-        } else {
-            list.setAdapter(cache.getTimeLineAdapter());
         }
     }
 
