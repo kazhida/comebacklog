@@ -64,7 +64,7 @@ public class CommentsActivity extends Activity {
         final BackLogCache cache = BackLogCache.sharedInstance();
         final ProgressDialog waitDialog = showWait(getString(R.string.loading));
 
-        cache.loadComments(issueId, new BacklogIO.ResponseNotify() {
+        cache.getIssue(issueId, new BacklogIO.ResponseNotify() {
             @Override
             public void success(int code, String response) {
                 waitDialog.dismiss();
@@ -112,7 +112,7 @@ public class CommentsActivity extends Activity {
         } else {
             final ProgressDialog waitDialog = showWait(getString(R.string.sending));
 
-            io.postComment(issueKey, content, new BacklogIO.ResponseNotify() {
+            io.addComment(issueKey, content, new BacklogIO.ResponseNotify() {
                 @Override
                 public void success(int code, String response) {
                     waitDialog.dismiss();

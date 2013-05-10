@@ -3,6 +3,7 @@ package com.abplus.comebacklog;
 import android.app.Activity;
 import android.content.Context;
 import android.os.Handler;
+import android.util.Log;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -11,6 +12,7 @@ import android.widget.BaseAdapter;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import com.abplus.comebacklog.caches.Comments;
+import com.abplus.comebacklog.caches.Issue;
 import com.abplus.comebacklog.caches.StructParser;
 import com.abplus.comebacklog.caches.TimeLine;
 import org.xmlpull.v1.XmlPullParser;
@@ -28,6 +30,7 @@ public class BackLogCache {
     Handler handler = new Handler();
     TimeLine timeLine = null;
     Comments comments = null;
+    Issue issue = null;
 
     interface OnIssueClickListener {
         void onClick(View v, String key);
@@ -57,97 +60,104 @@ public class BackLogCache {
 
     static BackLogCache cache = null;
 
+    /**
+     * 共有インスタンスの初期化
+     *
+     * @param activity  メインアクティビティ
+     * @param io        通信に使うオブジェクト
+     * @return  共有インスタンス
+     */
     static public BackLogCache initSharedInstance(Activity activity, BacklogIO io) {
         cache = new BackLogCache(activity, io);
         return cache;
     }
 
+    /**
+     * 共有インスタンスの取得
+     * @return  共有インスタンス
+     */
     static public BackLogCache sharedInstance() {
         return cache;
     }
 
+    /**
+     * @return  スペースIDプロパティ
+     */
     public String spaceId() {
         return backlogIO.getSpaceId();
     }
 
+    /**
+     * @return  ユーザIDプロパティ
+     */
     public String userId() {
         return backlogIO.getUserId();
     }
 
+    /**
+     * 通信に使うオブジェクトの取得
+     * @return  初期化に使ったBacklogIOインスタンス
+     */
     public BacklogIO getIO() {
         return backlogIO;
     }
 
+    /**
+     * 日付を整形するユーティリティ
+     * @param date  yyyymmddhhnnss形式の日付
+     * @return      mm/dd hh:nn形式の日付
+     */
     private String dateString(String date) {
         if (date == null) {
             return null;
         } else {
 //        String y = date.substring(0, 4);
-            String m = date.substring(4, 6);
-            String d = date.substring(6, 8);
-            String h = date.substring(8, 10);
-            String n = date.substring(10, 12);
+            String m = date.length() <  6 ? "" : date.substring( 4,  6);
+            String d = date.length() <  8 ? "" : date.substring( 6,  8);
+            String h = date.length() < 10 ? "" : date.substring( 8, 10);
+            String n = date.length() < 12 ? "" : date.substring(10, 12);
 //        String s = date.substring(12);
 
             return m + "/" + d + " " + h + ":" + n;
         }
     }
 
-    public void loadTimeLine(final BacklogIO.ResponseNotify notify) {
+    /**
+     * タイムラインの取得
+     * @param notify    終了通知インターフェース
+     */
+    public void getTimeLine(final BacklogIO.ResponseNotify notify) {
+        timeLine = null;
 
-        backlogIO.loadTimeLine(new BacklogIO.ResponseNotify() {
+        backlogIO.getTimeLine(new BacklogIO.ResponseNotify() {
             @Override
-            public void success(final int code, final String response) {
+            public void success(int code, String response) {
                 timeLine = new TimeLine();
                 try {
                     timeLine.parse(response);
-                    handler.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            notify.success(code, response);
-                        }
-                    });
+                    notify.success(code, response);
                 } catch (final IOException e) {
-                    timeLine = null;
-                    handler.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            notify.error(e);
-                        }
-                    });
+                    notify.error(e);
                 } catch (final XmlPullParserException e) {
-                    timeLine = null;
-                    handler.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            notify.error(e);
-                        }
-                    });
+                    notify.error(e);
                 }
             }
 
             @Override
-            public void failed(final int code, final String response) {
-                handler.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        notify.failed(code, response);
-                    }
-                });
+            public void failed(int code, String response) {
+                notify.failed(code, response);
             }
 
             @Override
-            public void error(final Exception e) {
-                handler.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        notify.error(e);
-                    }
-                });
+            public void error(Exception e) {
+                notify.error(e);
             }
         });
     }
 
+    /**
+     * タイムラインのリスト表示用アダプタ
+     */
     private class TimeLineAdapter extends BaseAdapter {
 
         @Override
@@ -206,6 +216,10 @@ public class BackLogCache {
         }
     }
 
+    /**
+     * タイムライン用アダプタの取得
+     * @return  タイムライン用アダプタ
+     */
     public BaseAdapter getTimeLineAdapter() {
         if (timeLine == null) {
             return null;
@@ -214,71 +228,95 @@ public class BackLogCache {
         }
     }
 
-    public void loadComments(int issueId, final BacklogIO.ResponseNotify notify) {
+    /**
+     * 課題情報の取得
+     * そのまま、コメントの取得も行う
+     * @param issueId   課題ID
+     * @param notify    終了通知インターフェース
+     */
+    public void getIssue(final int issueId, final BacklogIO.ResponseNotify notify) {
+        issue = null;
 
-        backlogIO.loadComments(issueId, new BacklogIO.ResponseNotify() {
+        backlogIO.getIssue(issueId, new BacklogIO.ResponseNotify() {
             @Override
-            public void success(final int code, final String response) {
-                comments = new Comments();
+            public void success(int code, String response) {
+                issue = new Issue();
                 try {
-                    comments.parse(response);
-                    handler.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            notify.success(code, response);
-                        }
-                    });
+                    issue.parse(response);
+                    Log.d(BacklogIO.DEBUG_TAG, response);
+                    //  このままcommentsもとってくる
+                    getComments(issueId, notify);
                 } catch (final IOException e) {
-                    timeLine = null;
-                    handler.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            notify.error(e);
-                        }
-                    });
+                    notify.error(e);
                 } catch (final XmlPullParserException e) {
-                    timeLine = null;
-                    handler.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            notify.error(e);
-                        }
-                    });
+                    notify.error(e);
                 }
             }
 
             @Override
-            public void failed(final int code, final String response) {
-                handler.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        notify.failed(code, response);
-                    }
-                });
+            public void failed(int code, String response) {
+                notify.failed(code, response);
             }
 
             @Override
-            public void error(final Exception e) {
-                handler.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        notify.error(e);
-                    }
-                });
+            public void error(Exception e) {
+                notify.error(e);
             }
         });
     }
 
+    /**
+     * コメントの取得
+     * @param issueId   課題ID
+     * @param notify    終了通知インターフェース
+     */
+    private void getComments(int issueId, final BacklogIO.ResponseNotify notify) {
+        comments = null;
+
+        backlogIO.getComments(issueId, new BacklogIO.ResponseNotify() {
+            @Override
+            public void success(int code, String response) {
+                comments = new Comments();
+                try {
+                    comments.parse(response);
+                    notify.success(code, response);
+                } catch (final IOException e) {
+                    notify.error(e);
+                } catch (final XmlPullParserException e) {
+                    notify.error(e);
+                }
+            }
+
+            @Override
+            public void failed(int code, String response) {
+                notify.failed(code, response);
+            }
+
+            @Override
+            public void error(Exception e) {
+                notify.error(e);
+            }
+        });
+    }
+
+    /**
+     * コメントのリスト表示用アダプタ
+     * 末尾には課題情報が含まれる
+     */
     private class CommentsAdapter extends BaseAdapter {
 
         @Override
         public int getCount() {
-            return comments.count();
+            return comments.count() + 1;
         }
 
         @Override
         public Object getItem(int position) {
-            return comments.get(position);
+            if (position < comments.count()) {
+                return comments.get(position);
+            } else {
+                return issue;
+            }
         }
 
         @Override
@@ -286,11 +324,10 @@ public class BackLogCache {
             return position;
         }
 
-        @Override
-        public View getView(int position, View convertView, ViewGroup parent) {
+        private View getCommentView(int position, View convertView) {
             LinearLayout result = (LinearLayout)convertView;
 
-            if (result == null) {
+            if (result == null || result.getTag() instanceof Issue) {
                 result = (LinearLayout)inflater.inflate(R.layout.list_item, null);
             }
 
@@ -310,10 +347,53 @@ public class BackLogCache {
 
             return result;
         }
+
+        private View getIssueView(View convertView) {
+            LinearLayout result = (LinearLayout)convertView;
+
+            if (result == null || result.getTag() instanceof Comments.Comment) {
+                result = (LinearLayout)inflater.inflate(R.layout.issue_item, null);
+            }
+
+            result.setTag(issue);
+
+            TextView time = (TextView)result.findViewById(R.id.time);
+            TextView user = (TextView)result.findViewById(R.id.user);
+            TextView type = (TextView)result.findViewById(R.id.type);
+            TextView priority = (TextView)result.findViewById(R.id.priority);
+            TextView components = (TextView)result.findViewById(R.id.components);
+            TextView status = (TextView)result.findViewById(R.id.status);
+            TextView assigner = (TextView)result.findViewById(R.id.assigner);
+            TextView description = (TextView)result.findViewById(R.id.description);
+
+            time.setText(dateString(issue.getCreatedOn()));
+            user.setText(issue.getCreatedUser().getName());
+            type.setText(issue.getIssueType().getName());
+            priority.setText(issue.getPriority().getName());
+            components.setText(issue.getComponents().getName());
+            status.setText(issue.getStatus().getName());
+            assigner.setText(issue.getAssigner().getName());
+            description.setText(issue.getDescription());
+
+            return result;
+        }
+
+        @Override
+        public View getView(int position, View convertView, ViewGroup parent) {
+            if (position < comments.count()) {
+                return getCommentView(position, convertView);
+            } else {
+                return getIssueView(convertView);
+            }
+        }
     }
 
+    /**
+     * コメント用アダプタの取得
+     * @return  コメント用アダプタ
+     */
     public BaseAdapter getCommentsAdapter() {
-        if (timeLine == null) {
+        if (comments == null) {
             return null;
         } else {
             return new CommentsAdapter();

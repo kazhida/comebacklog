@@ -100,7 +100,11 @@ public abstract class StructParser {
             if (et == XmlPullParser.START_TAG) {
                 //  開始タグ
                 Log.d(BacklogIO.DEBUG_TAG + ".parseValue", "Start tag " + xpp.getName());
-                parseValueStartTag(name, xpp);
+                if (xpp.getName().equals("array")) {
+                    parseArray(name, xpp);
+                } else {
+                    parseValueStartTag(name, xpp);
+                }
             } else if (et == XmlPullParser.END_TAG) {
                 //  終了タグ
                 Log.d(BacklogIO.DEBUG_TAG + ".parseValue", "End tag " + xpp.getName());
@@ -118,4 +122,23 @@ public abstract class StructParser {
     abstract protected void parseValueText(String name, XmlPullParser xpp) throws IOException, XmlPullParserException;
     abstract protected void parseValueEndTag(String name, XmlPullParser xpp) throws IOException, XmlPullParserException;
 
+    protected void parseArray(String name, XmlPullParser xpp) throws IOException, XmlPullParserException {
+
+        for (int et = xpp.next(); et != XmlPullParser.END_DOCUMENT; et = xpp.next()) {
+            if (et == XmlPullParser.START_TAG) {
+                //  開始タグ
+                Log.d(BacklogIO.DEBUG_TAG + ".parseArray", "Start tag " + xpp.getName());
+                if (xpp.getName().equals("value")) {
+                    parseValue(name, xpp);
+                }
+            } else if (et == XmlPullParser.END_TAG) {
+                //  終了タグ
+                Log.d(BacklogIO.DEBUG_TAG + ".parseArray", "End tag " + xpp.getName());
+                if (xpp.getName().equals("array")) break;
+            } else if (et == XmlPullParser.TEXT) {
+                //  タグに挟まれたテキスト
+                Log.d(BacklogIO.DEBUG_TAG + ".parseArray", "Text " + xpp.getText());
+            }
+        }
+    }
 }

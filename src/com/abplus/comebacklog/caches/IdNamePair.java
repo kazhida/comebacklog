@@ -32,7 +32,7 @@ public class IdNamePair implements BacklogIO.IdHolder, BacklogIO.NameHolder, Bac
         new PairParser().parseStruct(xpp);
     }
 
-    private class PairParser extends StructParser {
+    protected class PairParser extends StructParser {
         IdNamePair pair = IdNamePair.this;
 
         @Override

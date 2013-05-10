@@ -27,4 +27,18 @@
     <string name="done_send">送信しました。</string>
 
     <string name="follow_user">が、課題を</string>
+
+    <string name="created">作成</string>
+    <string name="type">種別</string>
+    <string name="priority">優先度</string>
+    <string name="components">カテゴリ</string>
+    <string name="status">状態</string>
+    <string name="assigner">担当者</string>
+
+    <string name="dummy_type">タスク</string>
+    <string name="dummy_priority">中</string>
+    <string name="dummy_components">なし</string>
+    <string name="dummy_status">処理中</string>
+    <string name="dummy_assigner">だれか</string>
+
 </resources>

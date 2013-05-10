@@ -86,7 +86,7 @@ public class MainActivity extends Activity {
             list.setAdapter(cache.getTimeLineAdapter());
         } else {
             final ProgressDialog waitDialog = showWait(getString(R.string.loading));
-            cache.loadTimeLine(new BacklogIO.ResponseNotify() {
+            cache.getTimeLine(new BacklogIO.ResponseNotify() {
                 @Override
                 public void success(int code, String response) {
                     waitDialog.dismiss();

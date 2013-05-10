@@ -120,19 +120,7 @@ public class BacklogIO {
         }).start();
     }
 
-    public void loadSummaries(ResponseNotify notify) {
-        StringBuilder xml = new StringBuilder();
-
-        xml.append("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
-        xml.append("<methodCall>");
-        xml.append("<methodName>backlog.getProjectSummaries</methodName>");
-        xml.append("<params />");
-        xml.append("</methodCall>");
-
-        post(xml.toString(), notify);
-    }
-
-    public void loadTimeLine(ResponseNotify notify) {
+    public void getTimeLine(ResponseNotify notify) {
         StringBuilder xml = new StringBuilder();
 
         xml.append("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
@@ -144,7 +132,7 @@ public class BacklogIO {
         post(xml.toString(), notify);
     }
 
-    public void loadComments(int issueId, ResponseNotify notify) {
+    public void getComments(int issueId, ResponseNotify notify) {
         StringBuilder xml = new StringBuilder();
 
         xml.append("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
@@ -164,7 +152,27 @@ public class BacklogIO {
         post(xml.toString(), notify);
     }
 
-    public void loadUser(String userId, ResponseNotify notify) {
+    public void getIssue(int issueId, ResponseNotify notify) {
+        StringBuilder xml = new StringBuilder();
+
+        xml.append("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
+        xml.append("<methodCall>");
+        xml.append("<methodName>backlog.getIssue</methodName>");
+        xml.append("<params>");
+        xml.append("<param>");
+        xml.append("<value>");
+        xml.append("<int>");
+        xml.append(issueId);
+        xml.append("</int>");
+        xml.append("</value>");
+        xml.append("</param>");
+        xml.append("</params>");
+        xml.append("</methodCall>");
+
+        post(xml.toString(), notify);
+    }
+
+    public void getUser(String userId, ResponseNotify notify) {
         StringBuilder xml = new StringBuilder();
 
         xml.append("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
@@ -184,7 +192,7 @@ public class BacklogIO {
         post(xml.toString(), notify);
     }
 
-    public void postComment(String key, String content, ResponseNotify notify) {
+    public void addComment(String key, String content, ResponseNotify notify) {
         StringBuilder xml = new StringBuilder();
 
         xml.append("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
