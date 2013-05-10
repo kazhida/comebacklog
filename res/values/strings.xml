@@ -35,7 +35,7 @@
     <string name="status">状態</string>
     <string name="assigner">担当者</string>
 
-    <string name="hint_comment">コメントをここに書き込んで、上の保存ボタンをタップすると、登録されます。</string>
+    <string name="hint_comment">コメントをここに書き込んで、保存ボタンをタップ</string>
 
     <string name="dummy_type">タスク</string>
     <string name="dummy_priority">中</string>

@@ -33,18 +33,32 @@
     </LinearLayout>
 
     <!-- コメント入力欄 -->
-    <EditText
-            android:id="@+id/comment"
-            android:layout_width="fill_parent"
+    <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:padding="4dp"
-            android:gravity="top"
-            android:hint="@string/hint_comment"
-            android:lines="3"
-            android:textSize="8pt"
-            android:inputType="textMultiLine"
             android:background="@color/bg_entry_panel"
-            />
+            >
+
+        <ImageView
+                android:id="@+id/icon"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@drawable/ic_dummy"
+                android:contentDescription="@string/icon"/>
+        <EditText
+                android:id="@+id/comment"
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:padding="4dp"
+                android:gravity="top"
+                android:hint="@string/hint_comment"
+                android:lines="3"
+                android:textSize="8pt"
+                android:inputType="textMultiLine"
+                android:background="@color/bg_entry_panel"
+                />
+    </LinearLayout>
 
     <!-- コメント -->
     <ListView
