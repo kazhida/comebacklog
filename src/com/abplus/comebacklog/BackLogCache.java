@@ -2,6 +2,7 @@ package com.abplus.comebacklog;
 
 import android.app.Activity;
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.os.Handler;
 import android.util.Log;
 import android.util.TypedValue;
@@ -11,14 +12,13 @@ import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import com.abplus.comebacklog.caches.Comments;
-import com.abplus.comebacklog.caches.Issue;
-import com.abplus.comebacklog.caches.StructParser;
-import com.abplus.comebacklog.caches.TimeLine;
+import com.abplus.comebacklog.parsers.*;
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Copyright (C) 2013 ABplus Inc. kazhida
@@ -31,6 +31,7 @@ public class BackLogCache {
     TimeLine timeLine = null;
     Comments comments = null;
     Issue issue = null;
+    Map<Integer, Bitmap> icons = new HashMap<Integer, Bitmap>();
 
     interface OnIssueClickListener {
         void onClick(View v, String key);
@@ -398,5 +399,37 @@ public class BackLogCache {
         } else {
             return new CommentsAdapter();
         }
+    }
+
+    public void getUserIcon(int userId, final BacklogIO.ResponseNotify notify) {
+
+        backlogIO.getUserIcon(userId, new BacklogIO.ResponseNotify() {
+
+            @Override
+            public void success(int code, String response) {
+                UserIcon icon = new UserIcon();
+                try {
+                    icon.parse(response);
+                    //  Bitmapを作って、キャッシュに入れる
+
+                    notify.success(code, response);
+                } catch (final IOException e) {
+                    notify.error(e);
+                } catch (final XmlPullParserException e) {
+                    notify.error(e);
+                }
+                notify.success(code, response);
+            }
+
+            @Override
+            public void failed(int code, String response) {
+                notify.failed(code, response);
+            }
+
+            @Override
+            public void error(Exception e) {
+                notify.error(e);
+            }
+        });
     }
 }

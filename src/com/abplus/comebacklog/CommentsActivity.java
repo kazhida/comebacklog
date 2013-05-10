@@ -6,13 +6,9 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
-import android.view.View;
-import android.view.WindowManager;
+import android.view.*;
 import android.view.inputmethod.InputMethodManager;
-import android.widget.EditText;
-import android.widget.ListView;
-import android.widget.TextView;
-import android.widget.Toast;
+import android.widget.*;
 
 /**
  * Copyright (C) 2013 ABplus Inc. kazhida
@@ -23,6 +19,7 @@ import android.widget.Toast;
 public class CommentsActivity extends Activity {
     private int issueId;
     private String issueKey;
+    private BaseAdapter adapter = null;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -42,19 +39,12 @@ public class CommentsActivity extends Activity {
 
         key.setText(issueKey);
         summary.setText(intent.getStringExtra(getString(R.string.key_issue_summary)));
-
-        findViewById(R.id.send).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                postComment();
-            }
-        });
     }
 
     @Override
     public void onResume() {
         super.onResume();
-        if (issueId >= 0) {
+        if (issueId >= 0 && adapter == null) {
             showComments();
         }
     }
@@ -64,11 +54,15 @@ public class CommentsActivity extends Activity {
         final BackLogCache cache = BackLogCache.sharedInstance();
         final ProgressDialog waitDialog = showWait(getString(R.string.loading));
 
+        adapter = null;
+        list.setAdapter(adapter);
+
         cache.getIssue(issueId, new BacklogIO.ResponseNotify() {
             @Override
             public void success(int code, String response) {
                 waitDialog.dismiss();
-                list.setAdapter(cache.getCommentsAdapter());
+                adapter = cache.getCommentsAdapter();
+                list.setAdapter(adapter);
             }
 
             @Override
@@ -99,6 +93,29 @@ public class CommentsActivity extends Activity {
 
     private void showMessage(int msg_id) {
         Toast.makeText(this, getString(msg_id), Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        super.onCreateOptionsMenu(menu);
+
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.comments, menu);
+
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch(item.getItemId()){
+            case R.id.menu_reload:
+                showComments();
+                return true;
+            case R.id.menu_post:
+                postComment();
+                return true;
+        }
+        return false;
     }
 
     private void postComment() {

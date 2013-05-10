@@ -1,4 +1,4 @@
-package com.abplus.comebacklog.caches;
+package com.abplus.comebacklog.parsers;
 
 import com.abplus.comebacklog.BackLogCache;
 import org.xmlpull.v1.XmlPullParser;

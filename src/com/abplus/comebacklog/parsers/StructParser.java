@@ -1,4 +1,4 @@
-package com.abplus.comebacklog.caches;
+package com.abplus.comebacklog.parsers;
 
 import android.util.Log;
 import android.util.Xml;

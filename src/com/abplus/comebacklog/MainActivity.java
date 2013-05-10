@@ -11,7 +11,7 @@ import android.view.*;
 import android.widget.AdapterView;
 import android.widget.ListView;
 import android.widget.Toast;
-import com.abplus.comebacklog.caches.TimeLine;
+import com.abplus.comebacklog.parsers.TimeLine;
 
 public class MainActivity extends Activity {
 
@@ -134,8 +134,6 @@ public class MainActivity extends Activity {
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.options, menu);
 
-        menu.findItem(R.id.menu_post).setVisible(false);
-
         return true;
     }
 
@@ -147,8 +145,6 @@ public class MainActivity extends Activity {
                 return true;
             case R.id.menu_reload:
                 showTimeLine(false);
-                return true;
-            case R.id.menu_post:
                 return true;
         }
         return false;
