@@ -1,7 +1,6 @@
 package com.abplus.comebacklog;
 
 import android.content.SharedPreferences;
-import android.os.Build;
 import android.os.Bundle;
 import android.app.Activity;
 import android.preference.PreferenceManager;
@@ -18,9 +17,6 @@ public class PrefsActivity extends Activity {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
-            setTheme(R.style.app_theme);
-        }
         super.onCreate(savedInstanceState);
         setContentView(R.layout.prefs);
 
