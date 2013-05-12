@@ -4,16 +4,22 @@ import android.app.Activity;
 import android.app.ProgressDialog;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.view.*;
 import android.widget.AdapterView;
+import android.widget.BaseAdapter;
 import android.widget.ListView;
 import android.widget.Toast;
 import com.abplus.comebacklog.parsers.TimeLine;
 
+import java.util.SortedSet;
+import java.util.TreeSet;
+
 public class MainActivity extends Activity {
+    private BaseAdapter timeLineAdapter;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -58,7 +64,7 @@ public class MainActivity extends Activity {
         if (cache == null) {
             BackLogCache.initSharedInstance(this, new BacklogIO(spaceId, userId, password));
             return false;
-        } else if(spaceId.equals(cache.spaceId()) && userId.equals(cache.userId()) && cache.getTimeLineAdapter() != null) {
+        } else if(spaceId.equals(cache.spaceId()) && userId.equals(cache.userId()) && cache.getTimeLine() != null) {
             return true;
         } else {
             BackLogCache.initSharedInstance(this, new BacklogIO(spaceId, userId, password));
@@ -82,15 +88,14 @@ public class MainActivity extends Activity {
         final ListView list = (ListView)findViewById(R.id.time_line_list);
         final BackLogCache cache = BackLogCache.sharedInstance();
 
-        if (keep) {
-            list.setAdapter(cache.getTimeLineAdapter());
+        if (keep && timeLineAdapter != null) {
+            timeLineAdapter.notifyDataSetChanged();
         } else {
             final ProgressDialog waitDialog = showWait(getString(R.string.loading));
-            cache.getTimeLine(new BacklogIO.ResponseNotify() {
+            cache.getTimeLine(new BackLogCache.CacheResponseNotify() {
                 @Override
                 public void success(int code, String response) {
                     waitDialog.dismiss();
-                    list.setAdapter(cache.getTimeLineAdapter());
                 }
 
                 @Override
@@ -103,6 +108,20 @@ public class MainActivity extends Activity {
                 public void error(Exception e) {
                     waitDialog.dismiss();
                     showError(R.string.cant_load, "Error: " + e.getLocalizedMessage());
+                }
+
+                @Override
+                public void success(BaseAdapter adapter) {
+                    waitDialog.dismiss();
+                    timeLineAdapter = adapter;
+                    list.setAdapter(timeLineAdapter);
+                    loadIcons();
+                }
+
+                @Override
+                public void success(Drawable icon) {
+                    waitDialog.dismiss();
+                    if (timeLineAdapter != null) timeLineAdapter.notifyDataSetChanged();
                 }
             });
         }
@@ -125,6 +144,22 @@ public class MainActivity extends Activity {
         intent.putExtra(getString(R.string.key_issue_summary), issue.getSummary());
 
         startActivity(intent);
+    }
+
+    private void loadIcons() {
+        SortedSet<Integer> userIds = new TreeSet<Integer>();
+
+        for (int i = 0; i < timeLineAdapter.getCount(); i++) {
+            TimeLine.Item item = (TimeLine.Item)timeLineAdapter.getItem(i);
+            userIds.add(item.getUser().getId());
+        }
+
+        BackLogCache.sharedInstance().loadIcons(userIds, new Runnable() {
+            @Override
+            public void run() {
+                timeLineAdapter.notifyDataSetChanged();
+            }
+        });
     }
 
     @Override

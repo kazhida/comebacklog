@@ -65,21 +65,20 @@ public class BacklogIO {
     }
 
     public void post(final String request, final ResponseNotify notify) {
-        final HttpPost httpPost = new HttpPost("https://" + space_id + ".backlog.jp/XML-RPC");
-        final DefaultHttpClient http = new DefaultHttpClient();
-
-        httpPost.addHeader("Content-Type", "text/xml");
-
-        http.getCredentialsProvider().setCredentials(
-                new AuthScope(httpPost.getURI().getHost(), httpPost.getURI().getPort()),
-                new UsernamePasswordCredentials(user_id, password)
-        );
-
-        Log.d(DEBUG_TAG + ".request", request);
-
         new Thread(new Runnable() {
             @Override
             public void run() {
+                HttpPost httpPost = new HttpPost("https://" + space_id + ".backlog.jp/XML-RPC");
+                DefaultHttpClient http = new DefaultHttpClient();
+
+                httpPost.addHeader("Content-Type", "text/xml");
+
+                http.getCredentialsProvider().setCredentials(
+                        new AuthScope(httpPost.getURI().getHost(), httpPost.getURI().getPort()),
+                        new UsernamePasswordCredentials(user_id, password)
+                );
+
+                Log.d(DEBUG_TAG + ".request", request);
                 try {
                     Thread.sleep(10);   //ProgressDialogのために、ちょっとだけスリープ
                     httpPost.setEntity(new StringEntity(request, HTTP.UTF_8));
@@ -192,12 +191,32 @@ public class BacklogIO {
         post(xml.toString(), notify);
     }
 
+    public void getUserIcon(String userId, ResponseNotify notify) {
+        StringBuilder xml = new StringBuilder();
+
+        xml.append("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
+        xml.append("<methodCall>");
+        xml.append("<methodName>backlog.getUserIcon</methodName>");
+        xml.append("<params>");
+        xml.append("<param>");
+        xml.append("<value>");
+        xml.append("<string>");
+        xml.append(userId);
+        xml.append("</string>");
+        xml.append("</value>");
+        xml.append("</param>");
+        xml.append("</params>");
+        xml.append("</methodCall>");
+
+        post(xml.toString(), notify);
+    }
+
     public void getUserIcon(int userId, ResponseNotify notify) {
         StringBuilder xml = new StringBuilder();
 
         xml.append("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
         xml.append("<methodCall>");
-        xml.append("<methodName>backlog.getUser</methodName>");
+        xml.append("<methodName>backlog.getUserIcon</methodName>");
         xml.append("<params>");
         xml.append("<param>");
         xml.append("<value>");

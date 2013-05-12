@@ -3,22 +3,25 @@ package com.abplus.comebacklog;
 import android.app.Activity;
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.os.Handler;
+import android.util.Base64;
 import android.util.Log;
-import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.BaseAdapter;
-import android.widget.LinearLayout;
-import android.widget.TextView;
 import com.abplus.comebacklog.parsers.*;
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.SortedSet;
 
 /**
  * Copyright (C) 2013 ABplus Inc. kazhida
@@ -27,13 +30,17 @@ import java.util.Map;
  * Created: 2013/05/08 11:47
  */
 public class BackLogCache {
-    Handler handler = new Handler();
-    TimeLine timeLine = null;
-    Comments comments = null;
-    Issue issue = null;
-    Map<Integer, Bitmap> icons = new HashMap<Integer, Bitmap>();
+    private TimeLine timeLine = null;
+    private Comments comments = null;
+    private Issue issue = null;
+    private User user = new User();
+    private Map<Integer, Drawable> icons = new HashMap<Integer, Drawable>();
+    private BacklogIO backlogIO;
+    private LayoutInflater inflater;
+    private Context context;
+    private Handler handler = new Handler();
 
-    interface OnIssueClickListener {
+    public interface OnIssueClickListener {
         void onClick(View v, String key);
     }
 
@@ -49,9 +56,10 @@ public class BackLogCache {
         void parse(String response) throws IOException, XmlPullParserException;
     }
 
-    private BacklogIO backlogIO;
-    private LayoutInflater inflater;
-    private Context context;
+    public interface CacheResponseNotify extends BacklogIO.ResponseNotify {
+        void success(BaseAdapter adapter);
+        void success(Drawable icon);
+    }
 
     private BackLogCache(Activity activity, BacklogIO io) {
         inflater = activity.getLayoutInflater();
@@ -96,6 +104,17 @@ public class BackLogCache {
     }
 
     /**
+     * @return  ユーザIDプロパティ(数値)
+     */
+    public int userIdAsInt() {
+        return user.getId();
+    }
+
+    public Drawable iconOf(int userId) {
+        return icons.get(userId);
+    }
+
+    /**
      * 通信に使うオブジェクトの取得
      * @return  初期化に使ったBacklogIOインスタンス
      */
@@ -103,23 +122,33 @@ public class BackLogCache {
         return backlogIO;
     }
 
-    /**
-     * 日付を整形するユーティリティ
-     * @param date  yyyymmddhhnnss形式の日付
-     * @return      mm/dd hh:nn形式の日付
-     */
-    private String dateString(String date) {
-        if (date == null) {
-            return null;
-        } else {
-//        String y = date.substring(0, 4);
-            String m = date.length() <  6 ? "" : date.substring( 4,  6);
-            String d = date.length() <  8 ? "" : date.substring( 6,  8);
-            String h = date.length() < 10 ? "" : date.substring( 8, 10);
-            String n = date.length() < 12 ? "" : date.substring(10, 12);
-//        String s = date.substring(12);
+    public TimeLine getTimeLine() {
+        return timeLine;
+    }
 
-            return m + "/" + d + " " + h + ":" + n;
+    public Comments getComments() {
+        return comments;
+    }
+
+    public Issue getIssue() {
+        return issue;
+    }
+
+    private abstract class Responder implements BacklogIO.ResponseNotify {
+        CacheResponseNotify notify;
+
+        Responder(CacheResponseNotify notify) {
+            this.notify = notify;
+        }
+
+        @Override
+        public void failed(int code, String response) {
+            notify.failed(code, response);
+        }
+
+        @Override
+        public void error(Exception e) {
+            notify.error(e);
         }
     }
 
@@ -127,106 +156,32 @@ public class BackLogCache {
      * タイムラインの取得
      * @param notify    終了通知インターフェース
      */
-    public void getTimeLine(final BacklogIO.ResponseNotify notify) {
-        timeLine = null;
+    public void getTimeLine(CacheResponseNotify notify) {
+        timeLine = new TimeLine();
 
-        backlogIO.getTimeLine(new BacklogIO.ResponseNotify() {
+        backlogIO.getTimeLine(new Responder(notify) {
             @Override
-            public void success(int code, String response) {
-                timeLine = new TimeLine();
-                try {
-                    timeLine.parse(response);
-                    notify.success(code, response);
-                } catch (final IOException e) {
-                    notify.error(e);
-                } catch (final XmlPullParserException e) {
-                    notify.error(e);
-                }
-            }
-
-            @Override
-            public void failed(int code, String response) {
-                notify.failed(code, response);
-            }
-
-            @Override
-            public void error(Exception e) {
-                notify.error(e);
+            public void success(int code, final String response) {
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            timeLine.parse(response);
+                            handler.post(new Runnable() {
+                                @Override
+                                public void run() {
+                                    notify.success(new TimeLineAdapter(context, inflater, timeLine));
+                                }
+                            });
+                        } catch (final IOException e) {
+                            notify.error(e);
+                        } catch (final XmlPullParserException e) {
+                            notify.error(e);
+                        }
+                    }
+                }).start();
             }
         });
-    }
-
-    /**
-     * タイムラインのリスト表示用アダプタ
-     */
-    private class TimeLineAdapter extends BaseAdapter {
-
-        @Override
-        public int getCount() {
-            return timeLine.count();
-        }
-
-        @Override
-        public Object getItem(int position) {
-            return timeLine.get(position);
-        }
-
-        @Override
-        public long getItemId(int position) {
-            return position;
-        }
-
-        @Override
-        public View getView(int position, View convertView, ViewGroup parent) {
-            LinearLayout result = (LinearLayout)convertView;
-
-            if (result == null) {
-                result = (LinearLayout)inflater.inflate(R.layout.list_item, null);
-            }
-
-            TimeLine.Item item = timeLine.get(position);
-            result.setTag(item);
-
-            TextView time = (TextView)result.findViewById(R.id.time);
-            TextView user = (TextView)result.findViewById(R.id.user);
-            TextView type = (TextView)result.findViewById(R.id.type);
-            TextView key = (TextView)result.findViewById(R.id.key);
-            TextView summary = (TextView)result.findViewById(R.id.summary);
-            TextView content = (TextView)result.findViewById(R.id.content);
-
-            time.setText(dateString(item.getUpdatedOn()));
-            user.setText(item.getUser().getName());
-            type.setText(item.getType().getName());
-            key.setText(item.getIssue().getKey());
-            summary.setText(item.getIssue().getSummary());
-            content.setText(item.getContent());
-
-            switch (item.getType().getId()) {
-                case 1:
-                    type.setBackgroundColor(context.getResources().getColor(R.color.type_subject));
-                    break;
-                case 2:
-                    type.setBackgroundColor(context.getResources().getColor(R.color.type_update));
-                    break;
-                default:
-                    type.setBackgroundColor(context.getResources().getColor(R.color.type_comment));
-                    break;
-            }
-
-            return result;
-        }
-    }
-
-    /**
-     * タイムライン用アダプタの取得
-     * @return  タイムライン用アダプタ
-     */
-    public BaseAdapter getTimeLineAdapter() {
-        if (timeLine == null) {
-            return null;
-        } else {
-            return new TimeLineAdapter();
-        }
     }
 
     /**
@@ -235,33 +190,26 @@ public class BackLogCache {
      * @param issueId   課題ID
      * @param notify    終了通知インターフェース
      */
-    public void getIssue(final int issueId, final BacklogIO.ResponseNotify notify) {
-        issue = null;
-
-        backlogIO.getIssue(issueId, new BacklogIO.ResponseNotify() {
+    public void getIssue(final int issueId, CacheResponseNotify notify) {
+        issue = new Issue();
+        backlogIO.getIssue(issueId, new Responder(notify) {
             @Override
-            public void success(int code, String response) {
-                issue = new Issue();
-                try {
-                    issue.parse(response);
-                    Log.d(BacklogIO.DEBUG_TAG, response);
-                    //  このままcommentsもとってくる
-                    getComments(issueId, notify);
-                } catch (final IOException e) {
-                    notify.error(e);
-                } catch (final XmlPullParserException e) {
-                    notify.error(e);
-                }
-            }
-
-            @Override
-            public void failed(int code, String response) {
-                notify.failed(code, response);
-            }
-
-            @Override
-            public void error(Exception e) {
-                notify.error(e);
+            public void success(int code, final String response) {
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            issue.parse(response);
+                            Log.d(BacklogIO.DEBUG_TAG, response);
+                            //  このままcommentsもとってくる
+                            getComments(issueId, notify);
+                        } catch (final IOException e) {
+                            notify.error(e);
+                        } catch (final XmlPullParserException e) {
+                            notify.error(e);
+                        }
+                    }
+                }).start();
             }
         });
     }
@@ -271,164 +219,163 @@ public class BackLogCache {
      * @param issueId   課題ID
      * @param notify    終了通知インターフェース
      */
-    private void getComments(int issueId, final BacklogIO.ResponseNotify notify) {
-        comments = null;
-
-        backlogIO.getComments(issueId, new BacklogIO.ResponseNotify() {
+    private void getComments(int issueId, final CacheResponseNotify notify) {
+        comments = new Comments();
+        backlogIO.getComments(issueId, new Responder(notify) {
             @Override
-            public void success(int code, String response) {
-                comments = new Comments();
-                try {
-                    comments.parse(response);
-                    notify.success(code, response);
-                } catch (final IOException e) {
-                    notify.error(e);
-                } catch (final XmlPullParserException e) {
-                    notify.error(e);
-                }
-            }
-
-            @Override
-            public void failed(int code, String response) {
-                notify.failed(code, response);
-            }
-
-            @Override
-            public void error(Exception e) {
-                notify.error(e);
+            public void success(int code, final String response) {
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            comments.parse(response);
+                            handler.post(new Runnable() {
+                                @Override
+                                public void run() {
+                                    notify.success(new CommentsAdapter(inflater, comments, issue));
+                                }
+                            });
+                        } catch (final IOException e) {
+                            notify.error(e);
+                        } catch (final XmlPullParserException e) {
+                            notify.error(e);
+                        }
+                    }
+                }).start();
             }
         });
     }
 
     /**
-     * コメントのリスト表示用アダプタ
-     * 末尾には課題情報が含まれる
+     * ユーザ情報の取得
+     * @param userId    ユーザID
+     * @param notify    終了通知インターフェース
      */
-    private class CommentsAdapter extends BaseAdapter {
+    public void getUser(String userId, CacheResponseNotify notify) {
 
-        @Override
-        public int getCount() {
-            return comments.count() + 1;
-        }
-
-        @Override
-        public Object getItem(int position) {
-            if (position < comments.count()) {
-                return comments.get(position);
-            } else {
-                return issue;
+        backlogIO.getUser(userId, new Responder(notify) {
+            @Override
+            public void success(final int code, final String response) {
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            user.parse(response);
+                            handler.post(new Runnable() {
+                                @Override
+                                public void run() {
+                                    notify.success(code, response);
+                                }
+                            });
+                        } catch (IOException e) {
+                            notify.error(e);
+                        } catch (XmlPullParserException e) {
+                            notify.error(e);
+                        }
+                    }
+                }).start();
             }
-        }
-
-        @Override
-        public long getItemId(int position) {
-            return position;
-        }
-
-        private View getCommentView(int position, View convertView) {
-            LinearLayout result = (LinearLayout)convertView;
-
-            if (result == null || result.getTag() instanceof Issue) {
-                result = (LinearLayout)inflater.inflate(R.layout.list_item, null);
-            }
-
-            Comments.Comment comment = comments.get(position);
-            result.setTag(comment);
-
-            result.findViewById(R.id.issue_row).setVisibility(View.GONE);
-            result.findViewById(R.id.user_row).setVisibility(View.GONE);
-
-            TextView time = (TextView)result.findViewById(R.id.time);
-            TextView content = (TextView)result.findViewById(R.id.content);
-
-            time.setText(dateString(comment.getUpdatedOn()));
-            content.setText(comment.getContent());
-
-            time.setTextSize(TypedValue.COMPLEX_UNIT_PT, 8);
-
-            return result;
-        }
-
-        private View getIssueView(View convertView) {
-            LinearLayout result = (LinearLayout)convertView;
-
-            if (result == null || result.getTag() instanceof Comments.Comment) {
-                result = (LinearLayout)inflater.inflate(R.layout.issue_item, null);
-            }
-
-            result.setTag(issue);
-
-            TextView time = (TextView)result.findViewById(R.id.time);
-            TextView user = (TextView)result.findViewById(R.id.user);
-            TextView type = (TextView)result.findViewById(R.id.type);
-            TextView priority = (TextView)result.findViewById(R.id.priority);
-            TextView components = (TextView)result.findViewById(R.id.components);
-            TextView status = (TextView)result.findViewById(R.id.status);
-            TextView assigner = (TextView)result.findViewById(R.id.assigner);
-            TextView description = (TextView)result.findViewById(R.id.description);
-
-            time.setText(dateString(issue.getCreatedOn()));
-            user.setText(issue.getCreatedUser().getName());
-            type.setText(issue.getIssueType().getName());
-            priority.setText(issue.getPriority().getName());
-            components.setText(issue.getComponents().getName());
-            status.setText(issue.getStatus().getName());
-            assigner.setText(issue.getAssigner().getName());
-            description.setText(issue.getDescription());
-
-            return result;
-        }
-
-        @Override
-        public View getView(int position, View convertView, ViewGroup parent) {
-            if (position < comments.count()) {
-                return getCommentView(position, convertView);
-            } else {
-                return getIssueView(convertView);
-            }
-        }
+        });
     }
 
     /**
-     * コメント用アダプタの取得
-     * @return  コメント用アダプタ
+     * ユーザアイコンの取得
+     * @param userId    ユーザID
+     * @param notify    終了通知インターフェース
      */
-    public BaseAdapter getCommentsAdapter() {
-        if (comments == null) {
-            return null;
+    public void getUserIcon(int userId, CacheResponseNotify notify) {
+        Drawable drawable = icons.get(userId);
+
+        if (drawable != null) {
+            notify.success(drawable);
         } else {
-            return new CommentsAdapter();
+            backlogIO.getUserIcon(userId, new Responder(notify) {
+                @Override
+                public void success(int code, final String response) {
+                    new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            final UserIcon icon = new UserIcon();
+                            try {
+                                icon.parse(response);
+                                handler.post(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        //  Bitmapを作って、キャッシュに入れる
+                                        notify.success(putIcon(icon.getId(), icon));
+                                    }
+                                });
+                            } catch (final IOException e) {
+                                notify.error(e);
+                            } catch (final XmlPullParserException e) {
+                                notify.error(e);
+                            }
+                        }
+                    }).start();
+                }
+            });
         }
     }
 
-    public void getUserIcon(int userId, final BacklogIO.ResponseNotify notify) {
+    private Drawable createIcon(Bitmap bitmap) {
+        if (bitmap == null) {
+            return context.getResources().getDrawable(R.drawable.ic_dummy);
+        } else {
+            BitmapDrawable result = new BitmapDrawable(context.getResources(), bitmap);
+            result.setBounds(0, 0, bitmap.getWidth(), bitmap.getHeight());
+            return result;
+        }
+    }
 
-        backlogIO.getUserIcon(userId, new BacklogIO.ResponseNotify() {
+    private Drawable putIcon(int userId, UserIcon userIcon) {
+        Drawable drawable = icons.get(userId);
+
+        if (drawable == null) {
+            Log.d("userIcon", userIcon.getContentType());
+
+            byte[] data = Base64.decode(userIcon.getData(), Base64.DEFAULT);
+            InputStream stream = new ByteArrayInputStream(data);
+            Bitmap bitmap = BitmapFactory.decodeStream(stream);
+            Log.d("userIcon", "w=" + bitmap.getWidth() + " h=" + bitmap.getHeight());
+
+            drawable = createIcon(bitmap);
+            icons.put(userId, drawable);
+        }
+
+        return drawable;
+    }
+
+    public void loadIcons(final SortedSet<Integer> userIds, final Runnable notify) {
+        if (userIds.isEmpty()) return;
+
+        final Integer userId = userIds.first();
+        userIds.remove(userId);
+
+        getUserIcon(userId, new CacheResponseNotify() {
+            @Override
+            public void success(BaseAdapter adapter) {
+                loadIcons(userIds, notify);
+            }
+
+            @Override
+            public void success(Drawable icon) {
+                handler.post(notify);
+                loadIcons(userIds, notify);
+            }
 
             @Override
             public void success(int code, String response) {
-                UserIcon icon = new UserIcon();
-                try {
-                    icon.parse(response);
-                    //  Bitmapを作って、キャッシュに入れる
-
-                    notify.success(code, response);
-                } catch (final IOException e) {
-                    notify.error(e);
-                } catch (final XmlPullParserException e) {
-                    notify.error(e);
-                }
-                notify.success(code, response);
+                loadIcons(userIds, notify);
             }
 
             @Override
             public void failed(int code, String response) {
-                notify.failed(code, response);
+                loadIcons(userIds, notify);
             }
 
             @Override
             public void error(Exception e) {
-                notify.error(e);
+                loadIcons(userIds, notify);
             }
         });
     }

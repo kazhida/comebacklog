@@ -4,11 +4,19 @@ import android.app.Activity;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.view.*;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.*;
+import com.abplus.comebacklog.parsers.Comments;
+import com.abplus.comebacklog.parsers.Issue;
+
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 /**
  * Copyright (C) 2013 ABplus Inc. kazhida
@@ -19,7 +27,7 @@ import android.widget.*;
 public class CommentsActivity extends Activity {
     private int issueId;
     private String issueKey;
-    private BaseAdapter adapter = null;
+    private BaseAdapter commentsAdapter = null;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -39,12 +47,14 @@ public class CommentsActivity extends Activity {
 
         key.setText(issueKey);
         summary.setText(intent.getStringExtra(getString(R.string.key_issue_summary)));
+
+        loadMyIcon();
     }
 
     @Override
     public void onResume() {
         super.onResume();
-        if (issueId >= 0 && adapter == null) {
+        if (issueId >= 0 && commentsAdapter == null) {
             showComments();
         }
     }
@@ -54,15 +64,13 @@ public class CommentsActivity extends Activity {
         final BackLogCache cache = BackLogCache.sharedInstance();
         final ProgressDialog waitDialog = showWait(getString(R.string.loading));
 
-        adapter = null;
-        list.setAdapter(adapter);
+        commentsAdapter = null;
+        list.setAdapter(commentsAdapter);
 
-        cache.getIssue(issueId, new BacklogIO.ResponseNotify() {
+        cache.getIssue(issueId, new BackLogCache.CacheResponseNotify() {
             @Override
             public void success(int code, String response) {
                 waitDialog.dismiss();
-                adapter = cache.getCommentsAdapter();
-                list.setAdapter(adapter);
             }
 
             @Override
@@ -75,6 +83,20 @@ public class CommentsActivity extends Activity {
             public void error(Exception e) {
                 waitDialog.dismiss();
                 showError(R.string.cant_load, "Error: " + e.getLocalizedMessage());
+            }
+
+            @Override
+            public void success(BaseAdapter adapter) {
+                waitDialog.dismiss();
+                commentsAdapter = adapter;
+                list.setAdapter(commentsAdapter);
+                loadIcons();
+            }
+
+            @Override
+            public void success(Drawable icon) {
+                waitDialog.dismiss();
+                if (commentsAdapter != null) commentsAdapter.notifyDataSetChanged();
             }
         });
     }
@@ -158,5 +180,87 @@ public class CommentsActivity extends Activity {
                 }
             });
         }
+    }
+
+    private void loadMyIcon() {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        String userId = prefs.getString(getString(R.string.key_user_id), "");
+        final BackLogCache cache = BackLogCache.sharedInstance();
+
+        if (! userId.isEmpty()) {
+            //  まず、ユーザ情報を読み込む
+            cache.getUser(userId, new BackLogCache.CacheResponseNotify() {
+
+                @Override
+                public void success(int code, String response) {
+                    //  うまくいったら、アイコンを取り出す
+                    cache.getUserIcon(cache.userIdAsInt(), new BackLogCache.CacheResponseNotify() {
+                        @Override
+                        public void success(BaseAdapter adapter) {
+                            //  なにもしない
+                        }
+
+                        @Override
+                        public void success(Drawable icon) {
+                            ImageView view = (ImageView)findViewById(R.id.icon);
+                            view.setImageDrawable(icon);
+                        }
+
+                        @Override
+                        public void success(int code, String response) {
+                            //  なにもしない
+                        }
+
+                        @Override
+                        public void failed(int code, String response) {
+                            showError(R.string.cant_load, "ERROR STATUS = " + code);
+                        }
+
+                        @Override
+                        public void error(Exception e) {
+                            showError(R.string.cant_load, e.getLocalizedMessage());
+                        }
+                    });
+                }
+
+                @Override
+                public void failed(int code, String response) {
+                    showError(R.string.cant_load, "ERROR STATUS = " + code);
+                }
+
+                @Override
+                public void error(Exception e) {
+                    showError(R.string.cant_load, e.getLocalizedMessage());
+                }
+
+                @Override
+                public void success(BaseAdapter adapter) {
+                    //  なにもしない
+                }
+
+                @Override
+                public void success(Drawable icon) {
+                    //  なにもしない
+                }
+            });
+        }
+    }
+
+    private void loadIcons() {
+        SortedSet<Integer> userIds = new TreeSet<Integer>();
+        int n = commentsAdapter.getCount() - 1;
+        for (int i = 0; i < n; i++) {
+            Comments.Comment comment = (Comments.Comment)commentsAdapter.getItem(i);
+            userIds.add(comment.getCreatedUser().getId());
+        }
+        Issue issue = (Issue)commentsAdapter.getItem(n);
+        userIds.add(issue.getCreatedUser().getId());
+
+        BackLogCache.sharedInstance().loadIcons(userIds, new Runnable() {
+            @Override
+            public void run() {
+                commentsAdapter.notifyDataSetChanged();
+            }
+        });
     }
 }
