@@ -8,11 +8,15 @@ import android.content.SharedPreferences;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.util.Log;
 import android.view.*;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.*;
 import com.abplus.comebacklog.parsers.Comments;
 import com.abplus.comebacklog.parsers.Issue;
+import com.google.ads.AdRequest;
+import com.google.ads.AdSize;
+import com.google.ads.AdView;
 
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -27,12 +31,15 @@ public class CommentsActivity extends Activity {
     private int issueId;
     private String issueKey;
     private BaseAdapter commentsAdapter = null;
+    private AdView adView = null;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
         setContentView(R.layout.comments);
+
+        adView = appendAdView();
 
         Intent intent = getIntent();
         issueId = intent.getIntExtra(getString(R.string.key_issue_id), -1);
@@ -50,9 +57,56 @@ public class CommentsActivity extends Activity {
     @Override
     public void onResume() {
         super.onResume();
+
         if (issueId >= 0 && commentsAdapter == null) {
             showComments();
         }
+
+        final String DEBUG_TAG = "*backlog.no_ad.billing.prefs";
+
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        switch (prefs.getInt(getString(R.string.key_no_ad), 0)) {
+            case 1:
+                Log.d(DEBUG_TAG, "no_ad");
+                hideAd();
+                break;
+            default:
+                Log.d(DEBUG_TAG, "show_ad");
+                showAd();
+                break;
+        }
+    }
+
+    private void showAd() {
+        adView.setVisibility(View.VISIBLE);
+        adView.loadAd(new AdRequest());
+    }
+
+    private void hideAd() {
+        adView.stopLoading();
+        adView.setVisibility(View.GONE);
+    }
+
+    /**
+     * 広告ビューを作って、アクティビティに追加する
+     */
+    private AdView appendAdView() {
+        AdView result = adView;
+
+        if (result == null) {
+            result = new AdView(this, AdSize.BANNER, getString(R.string.publisher_id));
+
+            RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+            );
+            result.setLayoutParams(params);
+
+            FrameLayout frame = (FrameLayout)findViewById(R.id.ad_frame);
+            frame.addView(result);
+        }
+
+        return result;
     }
 
     private void showComments() {
