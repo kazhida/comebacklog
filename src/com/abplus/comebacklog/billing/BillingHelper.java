@@ -102,6 +102,8 @@ public class BillingHelper {
                 context = aContext;
                 publicKey = aContext.getString(R.string.public_key_64);
             }
+        } else if (context != null) {
+            publicKey = context.getString(R.string.public_key_64);
         }
         if (asyncFlag == null) {
             asyncFlag = new AsyncFlag();
