@@ -87,6 +87,7 @@ public class MainActivity extends Activity {
             showInit(spaceId, userId, password);
         } else {
             billingHelper = new BillingHelper(this);
+            Log.d(DEBUG_TAG, "Setup start.");
             billingHelper.startSetup(new BillingHelper.OnSetupFinishedListener() {
                 @Override
                 public void onSetupFinished(BillingHelper.Result result) {
