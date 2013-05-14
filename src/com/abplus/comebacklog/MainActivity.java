@@ -83,9 +83,7 @@ public class MainActivity extends Activity {
         //  広告関連の処理
         final boolean needQuery = checkInventory;
 
-        if (billingHelper != null) {
-            showInit(spaceId, userId, password);
-        } else {
+        if (billingHelper == null) {
             billingHelper = new BillingHelper(this);
             Log.d(DEBUG_TAG, "Setup start.");
             billingHelper.startSetup(new BillingHelper.OnSetupFinishedListener() {
@@ -113,10 +111,10 @@ public class MainActivity extends Activity {
                             showAd();
                         }
                     }
-                    showInit(spaceId, userId, password);
                 }
             });
         }
+        showInit(spaceId, userId, password);
     }
 
     public void onDestroy() {
