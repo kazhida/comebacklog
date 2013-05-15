@@ -132,7 +132,10 @@ public class MainActivity extends Activity {
         if (cache == null) {
             BackLogCache.initSharedInstance(this, new BacklogIO(spaceId, userId, password));
             return false;
-        } else if(spaceId.equals(cache.spaceId()) && userId.equals(cache.userId()) && cache.getTimeLine() != null) {
+        } else if(spaceId.equals(cache.spaceId()) &&
+                userId.equals(cache.userId()) &&
+                password.equals(cache.password()) &&
+                cache.getTimeLine() != null) {
             return true;
         } else {
             BackLogCache.initSharedInstance(this, new BacklogIO(spaceId, userId, password));
